@@ -274,6 +274,22 @@ void cmd_chmod(const std::vector<std::string>& args) {
     cwd->children[name]->modified = std::time(nullptr);
 }
 
+// help command
+void cmd_help() {
+    std::cout
+        << "Supported commands:\n"
+        << "pwd\n"
+        << "ls\n"
+        << "ls -l\n"
+        << "cd <dir | .. | /absolute/path>\n"
+        << "mkdir <dir>\n"
+        << "rmdir <dir>\n"
+        << "touch <file>\n"
+        << "rm <file>\n"
+        << "chmod <mode> <file|dir>\n"
+        << "help\n"
+        << "exit | quit\n";
+}
 
 int main() {
     root = new Node("", true, nullptr);
@@ -313,6 +329,9 @@ int main() {
         }
         else if (cmd == "chmod") {
             cmd_chmod(tokens);
+        }
+        else if (cmd == "help") {
+            cmd_help();
         }
         else if (cmd == "exit" || cmd == "quit") {
             break;
