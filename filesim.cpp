@@ -142,9 +142,72 @@ void cmd_cd(const std::vector<std::string>& args) {
         return;
     }
 
-    // set the new working directory
     cwd = target;
 }
+
+// removes a file from the cwd
+void cmd_rm(const std::vector<std::string>& args) {
+    // ensure a filename was provided
+    if (args.size() < 2) {
+        std::cout << "rm: missing file operand\n";
+        return;
+    }
+
+    std::string name = args[1];
+
+    // check if the file exists in the current directory
+    if (!cwd->children.count(name)) {
+        std::cout << "rm: file does not exist\n";
+        return;
+    }
+
+    Node* target = cwd->children[name];
+
+    // prevent deleting directories with rm
+    if (target->isDirectory) {
+        std::cout << "rm: cannot remove '" << name
+                  << "': is a directory\n";
+        return;
+    }
+
+    delete target;
+    cwd->children.erase(name);
+}
+
+// removes an empty directory form cwd
+void cmd_rmdir(const std::vector<std::string>& args) {
+    // ensure a directory name was provided
+    if (args.size() < 2) {
+        std::cout << "rmdir: missing directory operand\n";
+        return;
+    }
+
+    std::string name = args[1];
+
+    // check if the directory exists in the current directory
+    if (!cwd->children.count(name)) {
+        std::cout << "rmdir: directory does not exist\n";
+        return;
+    }
+
+    Node* target = cwd->children[name];
+
+    // ensure the target is actually a directory
+    if (!target->isDirectory) {
+        std::cout << "rmdir: '" << name << "' is not a directory\n";
+        return;
+    }
+
+    // ensure the directory is empty before deletion
+    if (!target->children.empty()) {
+        std::cout << "rmdir: directory not empty\n";
+        return;
+    }
+
+    delete target;
+    cwd->children.erase(name);
+}
+
 
 int main() {
     root = new Node("", true, nullptr);
@@ -175,6 +238,12 @@ int main() {
         }
         else if (cmd == "cd") {
             cmd_cd(tokens);
+        }
+        else if (cmd == "rm") {
+            cmd_rm(tokens);
+        }
+        else if (cmd == "rmdir") {
+            cmd_rmdir(tokens);
         }
         else if (cmd == "exit" || cmd == "quit") {
             break;
