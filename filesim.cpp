@@ -68,9 +68,29 @@ void cmd_pwd() {
 }
 
 // lists the names of all files and directories in the current working directory
-void cmd_ls() {
+void cmd_ls(const std::vector<std::string>& args) {
+    bool longFormat = false;
+
+    // check for "-l" flag
+    if (args.size() > 1 && args[1] == "-l")
+        longFormat = true;
+
     for (auto& pair : cwd->children) {
-        std::cout << pair.first << "\n";
+        Node* n = pair.second;
+
+        if (!longFormat) {
+            // normal ls prints names only
+            std::cout << n->name << "\n";
+        }
+        else {
+            // long format: type + permissions + time + name
+            std::string type = n->isDirectory ? "d" : "-";
+            std::string timeStr = timeToString(n->modified);
+
+            std::cout << type << n->permissions << "  "
+                      << timeStr << "  "
+                      << n->name << "\n";
+        }
     }
 }
 
@@ -228,7 +248,7 @@ int main() {
             cmd_pwd();
         }
         else if (cmd == "ls") {
-            cmd_ls();
+            cmd_ls(tokens);
         }
         else if (cmd == "mkdir") {
             cmd_mkdir(tokens);
