@@ -132,37 +132,54 @@ void cmd_touch(const std::vector<std::string>& args) {
     cwd->children[name] = file;
 }
 
-// moves cwd to target
+// moves cwd to target (uses relative or absolute paths)
 void cmd_cd(const std::vector<std::string>& args) {
     if (args.size() < 2) {
         std::cout << "cd: missing operand\n";
         return;
     }
 
-    std::string dest = args[1];
+    std::string path = args[1];
+    Node* current;
 
-    // handle "cd .." (move up one directory)
-    if (dest == "..") {
-        if (cwd->parent != nullptr)
-            cwd = cwd->parent;
-        return;
+    // absolute path starts at root
+    if (path[0] == '/') {
+        current = root;
+        path.erase(0, 1);   // remove leading slash
+    }
+    else {
+        current = cwd;
     }
 
-    // ensure target exists
-    if (!cwd->children.count(dest)) {
-        std::cout << "cd: no such file or directory\n";
-        return;
+    std::stringstream ss(path);
+    std::string part;
+
+    while (std::getline(ss, part, '/')) {
+        if (part == "" || part == ".")
+            continue;
+
+        if (part == "..") {
+            if (current->parent != nullptr)
+                current = current->parent;
+            continue;
+        }
+
+        if (!current->children.count(part)) {
+            std::cout << "cd: no such directory\n";
+            return;
+        }
+
+        Node* next = current->children[part];
+
+        if (!next->isDirectory) {
+            std::cout << "cd: not a directory\n";
+            return;
+        }
+
+        current = next;
     }
 
-    Node* target = cwd->children[dest];
-
-    // ensure target is a directory
-    if (!target->isDirectory) {
-        std::cout << "cd: not a directory\n";
-        return;
-    }
-
-    cwd = target;
+    cwd = current;
 }
 
 // removes a file from the cwd
@@ -228,6 +245,35 @@ void cmd_rmdir(const std::vector<std::string>& args) {
     cwd->children.erase(name);
 }
 
+// modifies the permissions of a target file or directory
+// chmod <3digits> <target>
+void cmd_chmod(const std::vector<std::string>& args) {
+    if (args.size() < 3) {
+        std::cout << "chmod: missing operand\n";
+        return;
+    }
+
+    std::string mode = args[1];
+    std::string name = args[2];
+
+    // ensure exactly 3 digits
+    if (mode.size() != 3 ||
+        !isdigit(mode[0]) || !isdigit(mode[1]) || !isdigit(mode[2])) {
+        std::cout << "chmod: invalid permissions format\n";
+        return;
+    }
+
+    // ensure target exists
+    if (!cwd->children.count(name)) {
+        std::cout << "chmod: target does not exist\n";
+        return;
+    }
+
+    // apply permissions
+    cwd->children[name]->permissions = mode;
+    cwd->children[name]->modified = std::time(nullptr);
+}
+
 
 int main() {
     root = new Node("", true, nullptr);
@@ -264,6 +310,9 @@ int main() {
         }
         else if (cmd == "rmdir") {
             cmd_rmdir(tokens);
+        }
+        else if (cmd == "chmod") {
+            cmd_chmod(tokens);
         }
         else if (cmd == "exit" || cmd == "quit") {
             break;
